@@ -28,7 +28,7 @@ def url(args: Namespace):
 
 
 def github(args: Namespace):
-    print(f"Searching through repos of Github user: {args.user}\n")
+    print(f"Searching through repos of Github user: {args.user}")
     try:
         g = Github(args.key)
     except:
@@ -45,4 +45,8 @@ def github(args: Namespace):
 def trufflePy_main():
     parser = gen_arg_parser()
     args = parser.parse_args()
-    return args.func(args)
+    print("Beginning serach!!!")
+    try:
+        return args.func(args)
+    except AttributeError:
+        print("Please supply parameters, use the -h switch for help.")

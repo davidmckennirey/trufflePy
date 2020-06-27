@@ -92,7 +92,7 @@ class SearchEngine():
         return the lines before and after everywhere the secret appears in the diff
         TODO make the number of lines to search for above/below a user flag
         """
-        print("Secrets within the diff:\n")
+        print("Strings found within the diff:\n")
         locations = []
         for secret in secrets:
             locations.append(self._get_secret_locations_within_diff(diff, secret))

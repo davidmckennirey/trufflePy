@@ -17,7 +17,7 @@ def get_secret_regexes(rules_file=None) -> Dict: # TODO Validate get_secret_rege
     :return: The `re` compiled regex matches to be used in secret searching
     """
     if rules_file == None:
-        # Declare all the secret regexes to look for
+        # Declare all the secret regexes to look
         regexes = {
             "Slack Token": "(xox[p|b|o|a]-[0-9]{12}-[0-9]{12}-[0-9]{12}-[a-z0-9]{32})",
             "RSA private key": "-----BEGIN RSA PRIVATE KEY-----",
