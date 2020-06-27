@@ -21,7 +21,7 @@ HEX_CHARS = "1234567890abcdefABCDEF"
 
 class SearchEngine():
 
-    __slots__ = ['repo', 'regexes', 'since_commit', 'findings', 'path_inclusions', 'path_exclusions', 'max_depth', 'already_searched']
+    __slots__ = ['repo', 'regexes', 'since_commit', 'findings', 'path_inclusions', 'path_exclusions', 'max_depth', 'already_searched', 'skip_entropy', 'skip_regex']
 
     def __init__(self, repo: Repo, regexes: Dict[str, str], path_inclusions: str, path_exclusions: str, since_commit: str=None, max_depth: int=math.inf):
         self.repo = repo                                                    # The repo to search
@@ -32,8 +32,10 @@ class SearchEngine():
         self.since_commit = since_commit                                    # Hash of the commit to search forward from
         self.max_depth = max_depth                                          # Maximum depth of commit to search
         self.already_searched = set()                                       # These are the hashes of diffs that have already been searched
+        self.skip_entropy = False
+        self.skip_regex = False
 
-    def find_secrets(self, branch: str=None, print_json: bool=False) -> List:
+    def find_secrets(self, branch: str, print_json: bool, skip_entropy: bool, skip_regex: bool) -> List:
         """
         Search through a git repo for secrets
 
@@ -41,7 +43,14 @@ class SearchEngine():
         :param branch:
         :param max_depth:
         :param since_commit:
-        """     
+        """
+        if skip_entropy and skip_regex:
+            print("ERROR: You tried to skip entropy and regex, no searches done!")
+            return
+
+        self.skip_entropy = skip_entropy
+        self.skip_regex = skip_regex
+
         # If the user specified a branch, then go down that one, otherwise go down all branches
         if branch:
             branches = self.repo.remotes.origin.fetch(branch)
@@ -55,10 +64,13 @@ class SearchEngine():
         # Print the results
         self._print_results(print_json)
 
-    def _print_results(self, print_json: bool=False) -> None:
+    def _print_results(self, print_json: bool=False, lines: int=3) -> None:
         """
         Print the findings 
         """
+        if len(self.findings) == 0:
+            print("NO FINDINGS\n#########################################")
+            return
         if print_json:
             for finding in self.findings:
                 print(json.dumps(finding))
@@ -69,8 +81,58 @@ class SearchEngine():
                     if key != "diff":
                         print(f"{key:15}=> {value}")
                     else:
-                        print(f"{key}\n--------\n{value}")
+                        # print(f"{key}\n--------\n{value}")
+                        self._print_diff(value, finding.get('found_strings'), lines)
                 print("\n#########################################\n")
+
+
+    def _print_diff(self, diff: str, secrets: List[str], lines: int) -> None:
+        """
+        Instead of printing the whole diff (which can be huge) we just want to
+        return the lines before and after everywhere the secret appears in the diff
+        TODO make the number of lines to search for above/below a user flag
+        """
+        print("Secrets within the diff:\n")
+        locations = []
+        for secret in secrets:
+            locations.append(self._get_secret_locations_within_diff(diff, secret))
+
+        # flatten and sort the list of lists into one list
+        locations = [location for sublist in locations for location in sublist]
+        locations.sort() 
+
+        # find the start and end points of the lines before and after the secret
+        for loc in locations:
+            before = diff[0:loc]    # the diff before the secret
+            after = diff[loc:]      # the diff after the secret
+            after_marker = loc
+            for _ in range(lines):
+                before_marker = before.rfind("\n")
+                after_marker = after_marker + after.find("\n")
+                if before_marker == -1:
+                    before_marker = 0
+                if after.find("\n") == -1:
+                    after_marker = len(diff)
+                before = diff[0:before_marker]
+                after = diff[after_marker:]
+
+            print(f"{diff[before_marker:after_marker]}\n\n...\n\n")
+
+
+    @staticmethod
+    def _get_secret_locations_within_diff(diff: str, secret: str) -> List[int]:
+        """
+        Get all the locations that the secret appears in the diff
+        """
+        locations = []
+        last_find_loc = 0   # This will keep track of the last place we found a secret
+        while True:
+            loc = diff.find(secret, last_find_loc)
+            if loc == -1:
+                break
+            locations.append(loc)
+            last_find_loc = loc + 1  # we add one so that we dont keep finding the same secret at the beginning of the diff
+        return locations
 
 
     @staticmethod
@@ -190,8 +252,10 @@ class SearchEngine():
 
             # Find the secrets within the diff
             commit_time = datetime.datetime.fromtimestamp(prev_commit.committed_date).strftime('%Y-%m-%d %H:%M:%S')
-            self._find_entropy(printable_diff, commit_time, branch_name, prev_commit, blob, curr_commit.hexsha)
-            self._regex_check(printable_diff, commit_time, branch_name, prev_commit, blob, curr_commit.hexsha)
+            if not self.skip_entropy:
+                self._find_entropy(printable_diff, commit_time, branch_name, prev_commit, blob, curr_commit.hexsha)
+            if not self.skip_regex:
+                self._regex_check(printable_diff, commit_time, branch_name, prev_commit, blob, curr_commit.hexsha)
 
     @staticmethod
     def _shannon_entropy(data, iterator):
@@ -228,6 +292,7 @@ class SearchEngine():
         if count > threshold:
             strings.append(letters)
         return strings
+
 
     def _find_entropy(self, printable_diff, commit_time, branch_name, prev_commit, blob, commitHash):
         """

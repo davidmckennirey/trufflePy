@@ -13,19 +13,22 @@ def gen_arg_parser() -> ArgumentParser:
      # Main searching arguments
      main.add_argument("-j", "--json", dest="json", action="store_true", help="Output in JSON", default=False)
      main.add_argument("-r", "--rules", dest="rules", help="Ignore default regexes and source from json list file", default=None)
-     main.add_argument("-s", "--since_commit", dest="since_commit", help="Only scan from a given commit hash", default=None)
-     main.add_argument("-m", "--max_depth", dest="max_depth", help="The max commit depth to go back when searching for secrets")
+     main.add_argument("-s", "--since-commit", dest="since_commit", help="Only scan from a given commit hash", default=None)
+     main.add_argument("-m", "--max-depth", dest="max_depth", help="The max commit depth to go back when searching for secrets")
      main.add_argument("-b", "--branch", dest="branch", help="Name of the branch to be scanned", default=None)
-     main.add_argument('-i', '--include_paths', type=str, metavar='INCLUDE_PATHS_FILE', default=None,
+     main.add_argument('-i', '--include-paths', type=str, metavar='INCLUDE_PATHS_FILE', default=None,
                          help='File with regular expressions (one per line), at least one of which must match a Git '
                               'object path in order for it to be scanned; lines starting with "#" are treated as '
                               'comments and are ignored. If empty or not provided (default), all Git object paths are '
-                              'included unless otherwise excluded via the --exclude_paths option.')
-     main.add_argument('-x', '--exclude_paths', type=str, metavar='EXCLUDE_PATHS_FILE', default=None,
+                              'included unless otherwise excluded via the --exclude_paths option.', dest="include_paths")
+     main.add_argument('-x', '--exclude-paths', type=str, metavar='EXCLUDE_PATHS_FILE', default=None,
                          help='File with regular expressions (one per line), none of which may match a Git object path '
                               'in order for it to be scanned; lines starting with "#" are treated as comments and are '
                               'ignored. If empty or not provided (default), no Git object paths are excluded unless '
-                              'effectively excluded via the --include_paths option.')
+                              'effectively excluded via the --include_paths option.', dest="exclude_paths")
+     main.add_argument("--skip-entropy", action="store_true", default=False, help="Skip doing entropy checks")
+     main.add_argument("--skip-regex", action="store_true", default=False, help="Skip doing regex checks")
+
 
      # Local Git repo
      local = subparsers.add_parser("local", help="Search through a local git repo")
