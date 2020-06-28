@@ -1,6 +1,3 @@
-"""
-Search through Git diffs for secrets
-"""
 from git import Repo, NULL_TREE
 import git
 import hashlib
@@ -79,11 +76,11 @@ class SearchEngine():
             for finding in self.findings:
                 for key, value in finding.items():
                     if key != "diff":
-                        print(f"{key:15}=> {value}")
+                        print(f"{key:15}=> {bcolors.make_green(value)}")
                     else:
                         # print(f"{key}\n--------\n{value}")
                         self._print_diff(value, finding.get('found_strings'), lines)
-                print("\n#########################################\n")
+                print("\n\n#########################################")
 
 
     def _print_diff(self, diff: str, secrets: List[str], lines: int) -> None:
@@ -93,30 +90,24 @@ class SearchEngine():
         TODO make the number of lines to search for above/below a user flag
         """
         print("Strings found within the diff:\n")
-        locations = []
+        # for each secret that was found in the diff
         for secret in secrets:
-            locations.append(self._get_secret_locations_within_diff(diff, secret))
+            # For every location that the secret appeared
+            for loc in self._get_secret_locations_within_diff(diff, secret):
+                before = diff[0:loc]    # the diff before the secret
+                after = diff[loc:]      # the diff after the secret
+                after_marker = loc + len(secret)
+                for _ in range(lines):
+                    before_marker = before.rfind("\n")
+                    after_marker = after_marker + after.find("\n")
+                    if before_marker == -1:
+                        before_marker = 0
+                    if after.find("\n") == -1:
+                        after_marker = len(diff)
+                    before = diff[0:before_marker]
+                    after = diff[after_marker:]
 
-        # flatten and sort the list of lists into one list
-        locations = [location for sublist in locations for location in sublist]
-        locations.sort() 
-
-        # find the start and end points of the lines before and after the secret
-        for loc in locations:
-            before = diff[0:loc]    # the diff before the secret
-            after = diff[loc:]      # the diff after the secret
-            after_marker = loc
-            for _ in range(lines):
-                before_marker = before.rfind("\n")
-                after_marker = after_marker + after.find("\n")
-                if before_marker == -1:
-                    before_marker = 0
-                if after.find("\n") == -1:
-                    after_marker = len(diff)
-                before = diff[0:before_marker]
-                after = diff[after_marker:]
-
-            print(f"{diff[before_marker:after_marker]}\n\n...\n\n")
+            print(f"\n{diff[before_marker:after_marker]}\n\n...\n")
 
 
     @staticmethod

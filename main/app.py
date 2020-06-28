@@ -38,14 +38,13 @@ def github(args: Namespace):
         for github_repo in g.get_user(args.user).get_repos():
             args.URL = github_repo.clone_url
             url(args)
-    except:
+    except: # TODO narrow this down
         print(f"ERROR: Could not get Github repos for user {args.user}")
 
 
 def trufflePy_main():
     parser = gen_arg_parser()
     args = parser.parse_args()
-    print("Beginning serach!!!")
     try:
         return args.func(args)
     except AttributeError:

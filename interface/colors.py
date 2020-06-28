@@ -12,4 +12,6 @@ class bcolors:
     def make_warning(text) -> str:
         return f"{bcolors.WARNING}{text}{bcolors.ENDC}"
 
-    
+    @staticmethod
+    def make_green(text) -> str:
+        return f"{bcolors.OKGREEN}{text}{bcolors.ENDC}"

@@ -5,6 +5,7 @@ Default or user supplied regex matches for secrets to search for.
 import re
 from typing import Dict
 import json
+import sys
 
 
 def get_secret_regexes(rules_file=None) -> Dict: # TODO Validate get_secret_regexes function works for imported files
@@ -28,10 +29,10 @@ def get_secret_regexes(rules_file=None) -> Dict: # TODO Validate get_secret_rege
             "Amazon MWS Auth Token": "amzn\\.mws\\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
             "AWS API Key": "AKIA[0-9A-Z]{16}",
             "Facebook Access Token": "EAACEdEose0cBA[0-9A-Za-z]+",
-            "Facebook OAuth": "[f|F][a|A][c|C][e|E][b|B][o|O][o|O][k|K].*['|\"][0-9a-f]{32}['|\"]",
-            "GitHub": "[g|G][i|I][t|T][h|H][u|U][b|B].*['|\"][0-9a-zA-Z]{35,40}['|\"]",
-            "Generic API Key": "[a|A][p|P][i|I][_]?[k|K][e|E][y|Y].*['|\"][0-9a-zA-Z]{32,45}['|\"]",
-            "Generic Secret": "[s|S][e|E][c|C][r|R][e|E][t|T].*['|\"][0-9a-zA-Z]{32,45}['|\"]",
+            "Facebook OAuth": "[f|F][a|A][c|C][e|E][b|B][o|O][o|O][k|K]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*['|\"],[ ]{0,1}['|\"][0-9a-f]{32}['|\"]",
+            "GitHub": "[g|G][i|I][t|T][h|H][u|U][b|B]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*['|\"],[ ]{0,1}['|\"][0-9a-zA-Z]{35,40}['|\"]",
+            "Generic API Key": "[a|A][p|P][i|I][_]?[k|K][e|E][y|Y]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*['|\"],[ ]{0,1}['|\"][0-9a-zA-Z]{32,45}['|\"]",
+            "Generic Secret": "[s|S][e|E][c|C][r|R][e|E][t|T]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*['|\"],[ ]{0,1}['|\"][0-9a-zA-Z]{32,45}['|\"]",
             "Google API Key": "AIza[0-9A-Za-z\\-_]{35}",
             "Google Cloud Platform API Key": "AIza[0-9A-Za-z\\-_]{35}",
             "Google Cloud Platform OAuth": "[0-9]+-[0-9A-Za-z_]{32}\\.apps\\.googleusercontent\\.com",
@@ -43,7 +44,7 @@ def get_secret_regexes(rules_file=None) -> Dict: # TODO Validate get_secret_rege
             "Google OAuth Access Token": "ya29\\.[0-9A-Za-z\\-_]+",
             "Google YouTube API Key": "AIza[0-9A-Za-z\\-_]{35}",
             "Google YouTube OAuth": "[0-9]+-[0-9A-Za-z_]{32}\\.apps\\.googleusercontent\\.com",
-            "Heroku API Key": "[h|H][e|E][r|R][o|O][k|K][u|U].*[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}",
+            "Heroku API Key": "[h|H][e|E][r|R][o|O][k|K][u|U]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}",
             "MailChimp API Key": "[0-9a-f]{32}-us[0-9]{1,2}",
             "Mailgun API Key": "key-[0-9a-zA-Z]{32}",
             "Password in URL": "[a-zA-Z]{3,10}://[^/\\s:@]{3,20}:[^/\\s:@]{3,20}@.{1,100}[\"'\\s]",
@@ -55,8 +56,8 @@ def get_secret_regexes(rules_file=None) -> Dict: # TODO Validate get_secret_rege
             "Square Access Token": "sq0atp-[0-9A-Za-z\\-_]{22}",
             "Square OAuth Secret": "sq0csp-[0-9A-Za-z\\-_]{43}",
             "Twilio API Key": "SK[0-9a-fA-F]{32}",
-            "Twitter Access Token": "[t|T][w|W][i|I][t|T][t|T][e|E][r|R].*[1-9][0-9]+-[0-9a-zA-Z]{40}",
-            "Twitter OAuth": "[t|T][w|W][i|I][t|T][t|T][e|E][r|R].*['|\"][0-9a-zA-Z]{35,44}['|\"]"
+            "Twitter Access Token": "[t|T][w|W][i|I][t|T][t|T][e|E][r|R]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*[1-9][0-9]+-[0-9a-zA-Z]{40}",
+            "Twitter OAuth": "[t|T][w|W][i|I][t|T][t|T][e|E][r|R]\\.[A-Za-z\\.]{1,4}[/A-Za-z0-9?=]*['|\"],[ ]{0,1}['|\"][0-9a-zA-Z]{35,44}['|\"]"
         }
     else:
         # Read in the user supplied rules file
@@ -64,7 +65,8 @@ def get_secret_regexes(rules_file=None) -> Dict: # TODO Validate get_secret_rege
             with open(rules_file, "r") as f:
                 regexes = json.load(f)
         except (IOError, ValueError) as e:
-            raise(f"Error reading rules file: {e}")
+            print(f"Error reading rules file: {e}")
+            sys.exit(1)
 
     # Compile the JSON into regex searches
     for key in regexes:
